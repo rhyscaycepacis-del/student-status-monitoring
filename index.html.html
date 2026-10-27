@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduPulse - System Integration & Student Monitoring Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        slate: {
+                            850: '#111827',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar for dark modern sleek aesthetic */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .glow-green {
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.25);
+        }
+        .glow-red {
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+        }
+        .glow-blue {
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-slate-950">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Top Navigation Header -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30">
+        <div class="px-4 lg:px-8 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-cyan-500 to-blue-600 p-2 rounded-xl text-white shadow-lg shadow-cyan-500/20">
+                    <i data-lucide="activity" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">EduPulse Integration Hub</h1>
+                        <span class="px-2 py-0.5 text-xs font-mono font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-full flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span> Live v2.4
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-400 hidden sm:block">Unified Real-Time Online Student Activity & LMS Telemetry Monitor</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <!-- Simulation Controls -->
+                <button id="toggle-simulation-btn" onclick="toggleSimulation()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 transition flex items-center gap-2">
+                    <i data-lucide="play" class="w-3.5 h-3.5" id="sim-icon"></i>
+                    <span id="sim-text">Sim Live Events</span>
+                </button>
+
+                <button onclick="openWebhookModal()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 transition flex items-center gap-1.5">
+                    <i data-lucide="webhook" class="w-3.5 h-3.5 text-cyan-400"></i>
+                    <span class="hidden md:inline">Webhook Config</span>
+                </button>
+
+                <button onclick="openMockSimulatorModal()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-md shadow-blue-500/20 transition flex items-center gap-1.5">
+                    <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                    <span>Payload Injector</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 px-4 lg:px-8 py-6 space-y-6 max-w-[1800px] mx-auto w-full">
+
+        <!-- 1. OVERVIEW METRICS CARDS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <!-- Metric 1 -->
+            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-lg relative overflow-hidden group">
+                <div class="absolute right-3 top-3 text-slate-700 group-hover:text-slate-600 transition">
+                    <i data-lucide="users" class="w-8 h-8"></i>
+                </div>
+                <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Enrolled</p>
+                <h3 class="text-2xl font-bold text-white mt-1" id="metric-total">1,248</h3>
+                <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                    <span class="text-emerald-400 font-semibold flex items-center"><i data-lucide="trending-up" class="w-3 h-3 mr-0.5"></i> +12%</span> vs last term
+                </p>
+                <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+            </div>
+
+            <!-- Metric 2 -->
+            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-lg relative overflow-hidden group">
+                <div class="absolute right-3 top-3 text-emerald-500/20 group-hover:text-emerald-500/30 transition">
+                    <i data-lucide="wifi" class="w-8 h-8"></i>
+                </div>
+                <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Active / Online Now</p>
+                <h3 class="text-2xl font-bold text-emerald-400 mt-1 flex items-baseline gap-2">
+                    <span id="metric-online">412</span>
+                    <span class="text-xs text-slate-400 font-normal">(33%)</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Live engagement active
+                </p>
+                <div class="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500"></div>
+            </div>
+
+            <!-- Metric 3 -->
+            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-lg relative overflow-hidden group">
+                <div class="absolute right-3 top-3 text-rose-500/20 group-hover:text-rose-500/30 transition">
+                    <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+                </div>
+                <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Inactive / At-Risk</p>
+                <h3 class="text-2xl font-bold text-rose-400 mt-1" id="metric-risk">28</h3>
+                <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                    <span class="text-rose-400 font-semibold flex items-center"><i data-lucide="alert-circle" class="w-3 h-3 mr-0.5"></i> 8</span> exam dropouts today
+                </p>
+                <div class="absolute bottom-0 left-0 right-0 h-1 bg-rose-500"></div>
+            </div>
+
+            <!-- Metric 4 -->
+            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-lg relative overflow-hidden group">
+                <div class="absolute right-3 top-3 text-cyan-500/20 group-hover:text-cyan-500/30 transition">
+                    <i data-lucide="server" class="w-8 h-8"></i>
+                </div>
+                <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">System Uptime</p>
+                <h3 class="text-2xl font-bold text-cyan-400 mt-1" id="metric-uptime">99.85%</h3>
+                <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                    <span class="text-cyan-400 font-semibold">Avg Latency:</span> <span id="metric-latency">42ms</span>
+                </p>
+                <div class="absolute bottom-0 left-0 right-0 h-1 bg-cyan-500"></div>
+            </div>
+
+            <!-- Metric 5 -->
+            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-lg relative overflow-hidden group">
+                <div class="absolute right-3 top-3 text-amber-500/20 group-hover:text-amber-500/30 transition">
+                    <i data-lucide="zap" class="w-8 h-8"></i>
+                </div>
+                <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Webhook Event Rate</p>
+                <h3 class="text-2xl font-bold text-amber-400 mt-1" id="metric-events">18.4 <span class="text-xs text-slate-400 font-normal">evt/s</span></h3>
+                <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                    <span class="text-amber-400 font-semibold">Processed:</span> <span id="metric-total-events">142.8k</span>
+                </p>
+                <div class="absolute bottom-0 left-0 right-0 h-1 bg-amber-500"></div>
+            </div>
+        </div>
+
+        <!-- REAL-TIME WEBHOOK EVENT TICKER -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center gap-3 overflow-hidden shadow-inner">
+            <div class="flex items-center gap-2 px-2 py-1 bg-slate-800 text-cyan-400 text-xs font-mono font-semibold rounded shrink-0 border border-slate-700">
+                <i data-lucide="radio" class="w-3.5 h-3.5 animate-pulse"></i> LIVE TICKER
+            </div>
+            <div class="overflow-hidden w-full relative">
+                <div id="event-ticker" class="flex gap-6 whitespace-nowrap text-xs font-mono text-slate-300 transition-all duration-500">
+                    <!-- Dynamic events injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- SYSTEM INTEGRATION ARCHITECTURE & MOCK SIMULATOR BANNER -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
+                <div>
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i data-lucide="network" class="w-5 h-5 text-cyan-400"></i> Integrated Platforms & API Pipeline Health
+                    </h2>
+                    <p class="text-xs text-slate-400">Status of automated webhooks, data sync connectors, and API authentication nodes</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-400">Health Status:</span>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span> All Nodes Operational
+                    </span>
+                </div>
+            </div>
+
+            <!-- Visual Nodes Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Node 1: LMS -->
+                <div class="bg-slate-950 border border-slate-800 rounded-lg p-3.5 flex items-center justify-between hover:border-slate-700 transition">
+                    <div class="flex items-center space-x-3">
+                        <div class="p-2.5 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-lg">
+                            <i data-lucide="book-open" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-semibold text-slate-200">Canvas & Moodle LMS</h4>
+                            <p class="text-xs text-slate-400 font-mono">Sync: <span class="text-emerald-400">Active</span> • <span id="node-lms-latency">24ms</span></p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block glow-green"></span>
+                    </div>
+                </div>
+
+                <!-- Node 2: Zoom/Teams -->
+                <div class="bg-slate-950 border border-slate-800 rounded-lg p-3.5 flex items-center justify-between hover:border-slate-700 transition">
+                    <div class="flex items-center space-x-3">
+                        <div class="p-2.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg">
+                            <i data-lucide="video" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-semibold text-slate-200">Zoom / Teams API</h4>
+                            <p class="text-xs text-slate-400 font-mono">Hook: <span class="text-emerald-400">Connected</span> • <span id="node-zoom-latency">38ms</span></p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block glow-green"></span>
+                    </div>
+                </div>
+
+                <!-- Node 3: Proctoring -->
+                <div class="bg-slate-950 border border-slate-800 rounded-lg p-3.5 flex items-center justify-between hover:border-slate-700 transition">
+                    <div class="flex items-center space-x-3">
+                        <div class="p-2.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-lg">
+                            <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-semibold text-slate-200">ProctorEdu Node</h4>
+                            <p class="text-xs text-slate-400 font-mono">Alerts: <span class="text-emerald-400">Listening</span> • <span id="node-proctor-latency">51ms</span></p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block glow-green"></span>
+                    </div>
+                </div>
+
+                <!-- Node 4: Identity & Auth -->
+                <div class="bg-slate-950 border border-slate-800 rounded-lg p-3.5 flex items-center justify-between hover:border-slate-700 transition">
+                    <div class="flex items-center space-x-3">
+                        <div class="p-2.5 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-lg">
+                            <i data-lucide="key-round" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-semibold text-slate-200">OAuth2 / SAML Auth</h4>
+                            <p class="text-xs text-slate-400 font-mono">SSO: <span class="text-emerald-400">Optimal</span> • <span id="node-auth-latency">18ms</span></p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block glow-green"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN SPLIT LAYOUT: STUDENT TABLE (LEFT) & ALERTS + ANALYTICS (RIGHT) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- LEFT 8 COLS: STUDENT MONITORING TABLE -->
+            <div class="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col">
+                <!-- Header Controls & Filters -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="users-round" class="w-5 h-5 text-emerald-400"></i> Student Telemetry & Session Monitor
+                        </h2>
+                        <p class="text-xs text-slate-400">Real-time status tracking and direct engagement triggers</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="exportCSV()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition flex items-center gap-1.5">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i> Export CSV
+                        </button>
+                        <button onclick="exportJSON()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition flex items-center gap-1.5">
+                            <i data-lucide="file-json" class="w-3.5 h-3.5 text-cyan-400"></i> JSON
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters Bar -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                    <!-- Search Input -->
+                    <div class="relative">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-500"></i>
+                        <input type="text" id="search-input" onkeyup="filterStudents()" placeholder="Search student name or ID..." class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition">
+                    </div>
+
+                    <!-- Course Filter -->
+                    <div>
+                        <select id="course-filter" onchange="filterStudents()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-500 transition">
+                            <option value="ALL">All Courses</option>
+                            <option value="CS202 - Data Structures">CS202 - Data Structures</option>
+                            <option value="Math 101 - Calculus">Math 101 - Calculus</option>
+                            <option value="ENG304 - Technical Writing">ENG304 - Technical Writing</option>
+                            <option value="PHYS110 - Quantum Physics">PHYS110 - Quantum Physics</option>
+                            <option value="BIO201 - Molecular Genetics">BIO201 - Molecular Genetics</option>
+                        </select>
+                    </div>
+
+                    <!-- Status Filter Tabs -->
+                    <div>
+                        <select id="status-filter" onchange="filterStudents()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-500 transition">
+                            <option value="ALL">All Connection Statuses</option>
+                            <option value="Online">Online</option>
+                            <option value="Idle">Idle</option>
+                            <option value="Away">Away</option>
+                            <option value="Disconnected">Disconnected</option>
+                            <option value="At-Risk">At-Risk / Flagged</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="overflow-x-auto flex-1 rounded-lg border border-slate-800">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-950/80 text-slate-400 font-mono text-[11px] uppercase tracking-wider border-b border-slate-800">
+                                <th class="py-3 px-4">Student</th>
+                                <th class="py-3 px-4">Course</th>
+                                <th class="py-3 px-4">Current Activity</th>
+                                <th class="py-3 px-4">Status</th>
+                                <th class="py-3 px-4">Last Active</th>
+                                <th class="py-3 px-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-table-body" class="divide-y divide-slate-800/60 text-xs">
+                            <!-- Dynamic Table Rows Rendered via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Table Footer Pagination/Summary -->
+                <div class="flex items-center justify-between mt-4 text-xs text-slate-400">
+                    <span id="showing-count-text">Showing 0 students</span>
+                    <div class="flex items-center gap-1">
+                        <span class="text-slate-500">Auto-refresh rate: 3s</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT 4 COLS: ALERTS FEED & RULES ENGINE -->
+            <div class="lg:col-span-4 space-y-6 flex flex-col">
+                
+                <!-- AUTOMATED ALERTS FEED -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex-1 flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="relative">
+                                <i data-lucide="bell" class="w-5 h-5 text-amber-400"></i>
+                                <span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                            </div>
+                            <h2 class="text-base font-bold text-white">Live Alert Stream</h2>
+                        </div>
+                        <span class="px-2 py-0.5 text-[10px] font-mono bg-slate-800 text-slate-300 rounded border border-slate-700" id="alert-count-badge">0 Active</span>
+                    </div>
+
+                    <!-- Urgency Filter Pills -->
+                    <div class="flex items-center gap-1.5 mb-3">
+                        <button onclick="filterAlerts('ALL')" class="alert-pill active px-2.5 py-1 rounded text-[11px] font-medium bg-slate-800 text-slate-200 border border-slate-700">All</button>
+                        <button onclick="filterAlerts('CRITICAL')" class="alert-pill px-2.5 py-1 rounded text-[11px] font-medium bg-slate-950 text-rose-400 border border-slate-800 hover:bg-slate-800">Critical</button>
+                        <button onclick="filterAlerts('WARNING')" class="alert-pill px-2.5 py-1 rounded text-[11px] font-medium bg-slate-950 text-amber-400 border border-slate-800 hover:bg-slate-800">Warning</button>
+                        <button onclick="filterAlerts('INFO')" class="alert-pill px-2.5 py-1 rounded text-[11px] font-medium bg-slate-950 text-cyan-400 border border-slate-800 hover:bg-slate-800">Info</button>
+                    </div>
+
+                    <!-- Alerts Scrollable Container -->
+                    <div id="alerts-feed" class="space-y-3 overflow-y-auto max-h-[360px] pr-1 flex-1">
+                        <!-- Dynamic Alert Cards Injected Here -->
+                    </div>
+                </div>
+
+                <!-- AUTOMATED RULES ENGINE SUMMARY -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                            <i data-lucide="sliders" class="w-4 h-4 text-cyan-400"></i> Active Flagging Rules
+                        </h3>
+                        <span class="text-[10px] text-emerald-400 font-mono">4 Rules Running</span>
+                    </div>
+                    <div class="space-y-2 text-xs">
+                        <div class="p-2 bg-slate-950 rounded border border-slate-800/80 flex items-center justify-between">
+                            <span class="text-slate-300">Inactive &gt; 30m during Zoom exam</span>
+                            <span class="text-rose-400 font-mono font-semibold">Flag At-Risk</span>
+                        </div>
+                        <div class="p-2 bg-slate-950 rounded border border-slate-800/80 flex items-center justify-between">
+                            <span class="text-slate-300">Proctor tab switch count &gt; 3</span>
+                            <span class="text-amber-400 font-mono font-semibold">Warn Instructor</span>
+                        </div>
+                        <div class="p-2 bg-slate-950 rounded border border-slate-800/80 flex items-center justify-between">
+                            <span class="text-slate-300">Packet loss &gt; 15% on video stream</span>
+                            <span class="text-cyan-400 font-mono font-semibold">Ping Reconnect</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- 5. ANALYTICS & ENGAGEMENT CHARTS -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Chart 1: Hourly Activity Trend -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i data-lucide="line-chart" class="w-4 h-4 text-cyan-400"></i> Active Students Trend (24h)
+                    </h3>
+                    <span class="text-[10px] text-slate-400 font-mono">Hourly Sync</span>
+                </div>
+                <div class="h-48 relative">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 2: Connection Quality & Latency -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i data-lucide="pie-chart" class="w-4 h-4 text-emerald-400"></i> Connection Quality Distribution
+                    </h3>
+                    <span class="text-[10px] text-slate-400 font-mono">Real-time Ping</span>
+                </div>
+                <div class="h-48 relative">
+                    <canvas id="qualityChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 3: Course Engagement Scores -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-400"></i> Engagement Index by Course
+                    </h3>
+                    <span class="text-[10px] text-slate-400 font-mono">LMS Aggregation</span>
+                </div>
+                <div class="h-48 relative">
+                    <canvas id="engagementChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-4 mt-8">
+        <div class="max-w-[1800px] mx-auto px-4 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+            <p>© 2026 EduPulse Integration Platform • Multi-LMS Telemetry Hub</p>
+            <div class="flex items-center space-x-4">
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400"></span> API Status: 200 OK</span>
+                <span>•</span>
+                <span>Latency: <span id="footer-latency">28ms</span></span>
+                <span>•</span>
+                <a href="#" class="hover:text-slate-300 transition">API Documentation</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODAL 1: STUDENT QUICK ACTION & TELEMETRY DETAIL -->
+    <div id="student-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-xl w-full p-6 shadow-2xl relative">
+            <button onclick="closeStudentModal()" class="absolute right-4 top-4 text-slate-400 hover:text-white">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div class="flex items-center space-x-3 mb-4">
+                <div id="modal-avatar" class="w-12 h-12 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-lg border border-cyan-500/30">
+                    JD
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white" id="modal-student-name">Student Name</h3>
+                    <p class="text-xs text-slate-400" id="modal-student-id">ID: STU-1001 • Course</p>
+                </div>
+            </div>
+
+            <!-- Tabs in Modal -->
+            <div class="border-b border-slate-800 flex gap-4 text-xs font-semibold mb-4">
+                <button class="pb-2 border-b-2 border-cyan-400 text-cyan-400">Activity Telemetry Log</button>
+                <button class="pb-2 text-slate-400 hover:text-slate-200">System Network Metrics</button>
+            </div>
+
+            <!-- Telemetry Activity Log -->
+            <div class="space-y-3 mb-6 max-h-52 overflow-y-auto pr-2" id="modal-log-list">
+                <!-- Log entries injected dynamically -->
+            </div>
+
+            <!-- Quick Action Triggers -->
+            <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 mb-6">
+                <h4 class="text-xs font-semibold text-slate-300 mb-2 uppercase tracking-wider">Execute System Action</h4>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="triggerAction('reconnect')" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded text-xs font-medium border border-slate-700 flex items-center justify-center gap-1.5 transition">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Ping Reconnect
+                    </button>
+                    <button onclick="triggerAction('notification')" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded text-xs font-medium border border-slate-700 flex items-center justify-center gap-1.5 transition">
+                        <i data-lucide="mail" class="w-3.5 h-3.5"></i> Nudge Email/SMS
+                    </button>
+                    <button onclick="triggerAction('flag')" class="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-rose-400 rounded text-xs font-medium border border-slate-700 flex items-center justify-center gap-1.5 transition">
+                        <i data-lucide="flag" class="w-3.5 h-3.5"></i> Toggle At-Risk
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex justify-end">
+                <button onclick="closeStudentModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-700">Close Window</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: WEBHOOK CONFIGURATION -->
+    <div id="webhook-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button onclick="closeWebhookModal()" class="absolute right-4 top-4 text-slate-400 hover:text-white">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h3 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+                <i data-lucide="webhook" class="w-5 h-5 text-cyan-400"></i> Inbound Webhook Settings
+            </h3>
+            <p class="text-xs text-slate-400 mb-4">Configure integrated LMS / Video platform event receivers.</p>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Webhook Endpoint URL</label>
+                    <div class="flex items-center gap-2">
+                        <input type="text" readonly value="https://api.edupulse.io/v1/telemetry/webhook/ingest" class="bg-slate-950 border border-slate-800 text-cyan-400 font-mono text-xs rounded-lg p-2.5 flex-1 focus:outline-none">
+                        <button onclick="copyToClipboard('https://api.edupulse.io/v1/telemetry/webhook/ingest')" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 font-semibold transition">Copy</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Signing Secret (HMAC-SHA256)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="text" readonly value="whsec_8f92a01948b8c731e219fa82" class="bg-slate-950 border border-slate-800 text-slate-400 font-mono text-xs rounded-lg p-2.5 flex-1 focus:outline-none">
+                        <button onclick="copyToClipboard('whsec_8f92a01948b8c731e219fa82')" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 font-semibold transition">Copy</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Subscribed Events</label>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <label class="flex items-center gap-2 bg-slate-950 p-2 rounded border border-slate-800 text-slate-300">
+                            <input type="checkbox" checked class="rounded border-slate-700 bg-slate-900 text-cyan-500">
+                            <code>lms.assignment.submit</code>
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-950 p-2 rounded border border-slate-800 text-slate-300">
+                            <input type="checkbox" checked class="rounded border-slate-700 bg-slate-900 text-cyan-500">
+                            <code>zoom.participant.leave</code>
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-950 p-2 rounded border border-slate-800 text-slate-300">
+                            <input type="checkbox" checked class="rounded border-slate-700 bg-slate-900 text-cyan-500">
+                            <code>proctor.anomaly.detected</code>
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-950 p-2 rounded border border-slate-800 text-slate-300">
+                            <input type="checkbox" checked class="rounded border-slate-700 bg-slate-900 text-cyan-500">
+                            <code>auth.user.login</code>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-2">
+                <button onclick="closeWebhookModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs rounded-lg font-semibold hover:bg-slate-700">Save & Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: MOCK PAYLOAD INJECTOR SIMULATOR -->
+    <div id="mock-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button onclick="closeMockSimulatorModal()" class="absolute right-4 top-4 text-slate-400 hover:text-white">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <h3 class="text-lg font-bold text-white mb-1 flex items-center gap-2">
+                <i data-lucide="send" class="w-5 h-5 text-blue-400"></i> Mock API Payload Injector
+            </h3>
+            <p class="text-xs text-slate-400 mb-4">Simulate incoming webhook events to test system behavior and alerts.</p>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Select Preset Scenario</label>
+                    <select id="preset-select" onchange="loadPresetPayload()" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                        <option value="exam_drop">Exam Disconnect (Critical Alert Trigger)</option>
+                        <option value="quiz_submit">Quiz Submitted (Normal Event)</option>
+                        <option value="proctor_flag">Proctoring Anomaly (Tab Switch / Multi-face)</option>
+                        <option value="user_login">Student Login Event</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">JSON Payload Preview</label>
+                    <textarea id="payload-editor" rows="7" class="w-full bg-slate-950 border border-slate-800 text-cyan-400 font-mono text-xs rounded-lg p-3 focus:outline-none focus:border-cyan-500"></textarea>
+                </div>
+            </div>
+
+            <div class="mt-5 flex justify-end gap-2">
+                <button onclick="closeMockSimulatorModal()" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs rounded-lg font-semibold hover:bg-slate-700">Cancel</button>
+                <button onclick="dispatchMockEvent()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs rounded-lg font-semibold shadow-lg shadow-blue-600/30">Inject Payload</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- JAVASCRIPT APP LOGIC -->
+    <script>
+        // INITIAL MOCK DATA - STUDENT DATASET
+        let students = [
+            { id: "STU-1001", name: "Alex Chen", course: "CS202 - Data Structures", activity: "Submitted Quiz - Binary Trees", status: "Online", lastActive: "Just now", latency: 24, score: 94 },
+            { id: "STU-1002", name: "Sarah Jenkins", course: "Math 101 - Calculus", activity: "In Zoom Lecture - Integration", status: "Online", lastActive: "1m ago", latency: 31, score: 88 },
+            { id: "STU-1003", name: "Marcus Vance", course: "CS202 - Data Structures", activity: "Disconnected during exam", status: "At-Risk", lastActive: "14m ago", latency: 450, score: 52 },
+            { id: "STU-1004", name: "Elena Rostova", course: "ENG304 - Technical Writing", activity: "Reading Module 4 - Reports", status: "Idle", lastActive: "8m ago", latency: 62, score: 81 },
+            { id: "STU-1005", name: "David Kim", course: "PHYS110 - Quantum Physics", activity: "In Zoom Lecture - Optics", status: "Online", lastActive: "Just now", latency: 19, score: 96 },
+            { id: "STU-1006", name: "Chloe Bennett", course: "BIO201 - Molecular Genetics", activity: "Idle (No input for 25m)", status: "Away", lastActive: "25m ago", latency: 88, score: 70 },
+            { id: "STU-1007", name: "Liam O'Connor", course: "Math 101 - Calculus", activity: "Disconnected - Proctor Flag", status: "Disconnected", lastActive: "32m ago", latency: 999, score: 45 },
+            { id: "STU-1008", name: "Aria Sharma", course: "CS202 - Data Structures", activity: "Coding Lab #3 Active", status: "Online", lastActive: "3m ago", latency: 27, score: 90 },
+            { id: "STU-1009", name: "James Wilson", course: "ENG304 - Technical Writing", activity: "Submitted Essay Draft", status: "Online", lastActive: "Just now", latency: 35, score: 85 },
+            { id: "STU-1010", name: "Maya Lin", course: "PHYS110 - Quantum Physics", activity: "Watching Recording", status: "Online", lastActive: "2m ago", latency: 41, score: 92 }
+        ];
+
+        // INITIAL ALERTS FEED DATA
+        let alerts = [
+            { id: 101, studentId: "STU-1003", studentName: "Marcus Vance", type: "CRITICAL", msg: "Sudden connection loss during CS202 Midterm Exam", time: "2m ago", resolved: false },
+            { id: 102, studentId: "STU-1007", studentName: "Liam O'Connor", type: "WARNING", msg: "Multiple window focus changes flagged by ProctorEdu", time: "5m ago", resolved: false },
+            { id: 103, studentId: "STU-1006", studentName: "Chloe Bennett", type: "INFO", msg: "Inactivity timeout reached (>20 mins in live Zoom)", time: "12m ago", resolved: false }
+        ];
+
+        // TICKER EVENT STREAM DATA
+        const tickerEvents = [
+            "Canvas LMS: STU-1001 submitted Quiz #4 (100%)",
+            "Zoom API: STU-1005 unmuted audio in Math 101",
+            "OAuth2: STU-1008 token refreshed successfully",
+            "ProctorEdu: STU-1003 network ping degraded to 450ms",
+            "Moodle: STU-1009 posted in Discussion Forum #2"
+        ];
+
+        let selectedStudent = null;
+        let simulationInterval = null;
+        let isSimulating = true;
+        let currentAlertFilter = 'ALL';
+
+        // CHART INSTANCES
+        let trendChart, qualityChart, engagementChart;
+
+        // ON LOAD INITIALIZATION
+        window.onload = function() {
+            lucide.createIcons();
+            renderTable();
+            renderAlerts();
+            initTicker();
+            initCharts();
+            startSimulation();
+            loadPresetPayload();
+        };
+
+        // RENDER STUDENT TABLE
+        function renderTable() {
+            const tbody = document.getElementById('student-table-body');
+            const searchVal = document.getElementById('search-input').value.toLowerCase();
+            const courseVal = document.getElementById('course-filter').value;
+            const statusVal = document.getElementById('status-filter').value;
+
+            const filtered = students.filter(s => {
+                const matchesSearch = s.name.toLowerCase().includes(searchVal) || s.id.toLowerCase().includes(searchVal);
+                const matchesCourse = courseVal === 'ALL' || s.course === courseVal;
+                const matchesStatus = statusVal === 'ALL' || s.status === statusVal;
+                return matchesSearch && matchesCourse && matchesStatus;
+            });
+
+            document.getElementById('showing-count-text').innerText = `Showing ${filtered.length} of ${students.length} students`;
+
+            tbody.innerHTML = '';
+            filtered.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/40 transition border-b border-slate-800/40";
+
+                let statusBadgeClass = "";
+                switch(s.status) {
+                    case 'Online': statusBadgeClass = "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"; break;
+                    case 'Idle': statusBadgeClass = "bg-amber-500/10 text-amber-400 border-amber-500/30"; break;
+                    case 'Away': statusBadgeClass = "bg-slate-500/10 text-slate-400 border-slate-500/30"; break;
+                    case 'Disconnected': statusBadgeClass = "bg-rose-500/10 text-rose-400 border-rose-500/30"; break;
+                    case 'At-Risk': statusBadgeClass = "bg-rose-500/20 text-rose-300 border-rose-500/50 animate-pulse"; break;
+                }
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-medium text-slate-200">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-cyan-400">
+                                ${getInitials(s.name)}
+                            </div>
+                            <div>
+                                <div class="font-semibold text-white">${s.name}</div>
+                                <div class="text-[10px] font-mono text-slate-500">${s.id}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4 text-slate-300 font-mono text-[11px]">${s.course}</td>
+                    <td class="py-3 px-4 text-slate-300 max-w-xs truncate">${s.activity}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold border ${statusBadgeClass} inline-flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full ${s.status==='Online'?'bg-emerald-400':(s.status==='At-Risk'?'bg-rose-400':'bg-slate-400')}"></span>
+                            ${s.status}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-slate-400 font-mono text-[11px]">${s.lastActive}</td>
+                    <td class="py-3 px-4 text-right space-x-1">
+                        <button onclick="openStudentModal('${s.id}')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 font-medium border border-slate-700 transition">
+                            Inspect
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Re-render lucide icons if required
+            lucide.createIcons();
+        }
+
+        // FILTER EVENT HANDLER
+        function filterStudents() {
+            renderTable();
+        }
+
+        // RENDER ALERTS FEED
+        function renderAlerts() {
+            const feed = document.getElementById('alerts-feed');
+            feed.innerHTML = '';
+
+            const filteredAlerts = alerts.filter(a => {
+                if (currentAlertFilter === 'ALL') return true;
+                return a.type === currentAlertFilter;
+            });
+
+            document.getElementById('alert-count-badge').innerText = `${alerts.filter(a => !a.resolved).length} Unresolved`;
+
+            if(filteredAlerts.length === 0) {
+                feed.innerHTML = `<p class="text-xs text-slate-500 py-4 text-center">No active alerts for selected urgency.</p>`;
+                return;
+            }
+
+            filteredAlerts.forEach(a => {
+                const card = document.createElement('div');
+                let borderClass = "border-slate-800 bg-slate-950";
+                let badgeClass = "bg-slate-800 text-slate-300";
+
+                if (a.type === 'CRITICAL') {
+                    borderClass = "border-rose-500/30 bg-rose-950/10";
+                    badgeClass = "bg-rose-500/20 text-rose-300 border border-rose-500/30";
+                } else if (a.type === 'WARNING') {
+                    borderClass = "border-amber-500/30 bg-amber-950/10";
+                    badgeClass = "bg-amber-500/20 text-amber-300 border border-amber-500/30";
+                } else {
+                    borderClass = "border-cyan-500/30 bg-cyan-950/10";
+                    badgeClass = "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30";
+                }
+
+                card.className = `p-3 rounded-lg border ${borderClass} transition relative group`;
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="flex items-center gap-1.5">
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${badgeClass}">${a.type}</span>
+                            <span class="text-xs font-semibold text-white">${a.studentName}</span>
+                        </div>
+                        <span class="text-[10px] font-mono text-slate-500">${a.time}</span>
+                    </div>
+                    <p class="text-xs text-slate-300 mt-1">${a.msg}</p>
+                    <div class="mt-2.5 flex items-center justify-between pt-2 border-t border-slate-800/60">
+                        <span class="text-[10px] font-mono text-slate-500">ID: ${a.studentId}</span>
+                        <div class="flex gap-1.5">
+                            <button onclick="resolveAlert(${a.id})" class="px-2 py-0.5 bg-slate-800 hover:bg-emerald-950 hover:text-emerald-400 border border-slate-700 text-slate-300 text-[10px] rounded transition">
+                                Mark Resolved
+                            </button>
+                            <button onclick="openStudentModal('${a.studentId}')" class="px-2 py-0.5 bg-cyan-950/50 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-[10px] rounded transition">
+                                Reach Out
+                            </button>
+                        </div>
+                    </div>
+                `;
+                feed.appendChild(card);
+            });
+        }
+
+        // FILTER ALERTS
+        function filterAlerts(type) {
+            currentAlertFilter = type;
+            document.querySelectorAll('.alert-pill').forEach(btn => {
+                btn.classList.remove('bg-slate-800', 'text-slate-200');
+                btn.classList.add('bg-slate-950');
+            });
+            event.target.classList.add('bg-slate-800', 'text-slate-200');
+            renderAlerts();
+        }
+
+        // RESOLVE ALERT
+        function resolveAlert(id) {
+            alerts = alerts.filter(a => a.id !== id);
+            renderAlerts();
+            showToast("Alert marked as resolved and archived.", "success");
+        }
+
+        // TICKER SIMULATION
+        function initTicker() {
+            const container = document.getElementById('event-ticker');
+            container.innerHTML = tickerEvents.map(e => `<span class="inline-flex items-center gap-1"><i data-lucide="zap" class="w-3 h-3 text-cyan-400"></i> ${e}</span>`).join('<span class="text-slate-700"> | </span>');
+            lucide.createIcons();
+        }
+
+        function pushTickerMessage(msg) {
+            tickerEvents.unshift(msg);
+            if (tickerEvents.length > 8) tickerEvents.pop();
+            initTicker();
+        }
+
+        // INITIALIZE CHARTS
+        function initCharts() {
+            // Chart 1: Hourly Active Trend
+            const ctx1 = document.getElementById('trendChart').getContext('2d');
+            trendChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', 'Now'],
+                    datasets: [{
+                        label: 'Active Students',
+                        data: [120, 45, 280, 412, 390, 480, 412],
+                        borderColor: '#06b6d4',
+                        backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } } }
+                    }
+                }
+            });
+
+            // Chart 2: Connection Quality
+            const ctx2 = document.getElementById('qualityChart').getContext('2d');
+            qualityChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Optimal (<50ms)', 'Moderate (50-150ms)', 'Degraded (>150ms)'],
+                    datasets: [{
+                        data: [78, 16, 6],
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 12 } } 
+                    },
+                    cutout: '70%'
+                }
+            });
+
+            // Chart 3: Course Engagement
+            const ctx3 = document.getElementById('engagementChart').getContext('2d');
+            engagementChart = new Chart(ctx3, {
+                type: 'bar',
+                data: {
+                    labels: ['CS202', 'Math101', 'ENG304', 'PHYS110', 'BIO201'],
+                    datasets: [{
+                        label: 'Engagement Score',
+                        data: [92, 85, 78, 88, 74],
+                        backgroundColor: '#6366f1',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 10 } }, min: 0, max: 100 }
+                    }
+                }
+            });
+        }
+
+        // REAL-TIME SIMULATION ENGINE
+        function startSimulation() {
+            if (simulationInterval) clearInterval(simulationInterval);
+            simulationInterval = setInterval(() => {
+                if(!isSimulating) return;
+
+                // Randomly pick a student to update telemetry
+                const randomIdx = Math.floor(Math.random() * students.length);
+                const s = students[randomIdx];
+
+                const actions = [
+                    "Submitted Assignment #2",
+                    "Viewing Quiz Result",
+                    "In Zoom Lecture - Active",
+                    "Buffer Under-run Detected",
+                    "Idle - Mouse static"
+                ];
+                const newAct = actions[Math.floor(Math.random() * actions.length)];
+                s.activity = newAct;
+                s.lastActive = "Just now";
+
+                // Random jitter for system latency display
+                document.getElementById('metric-latency').innerText = Math.floor(35 + Math.random() * 15) + "ms";
+                document.getElementById('footer-latency').innerText = Math.floor(25 + Math.random() * 12) + "ms";
+
+                // Update node latencies
+                document.getElementById('node-lms-latency').innerText = Math.floor(20 + Math.random() * 10) + "ms";
+                document.getElementById('node-zoom-latency').innerText = Math.floor(30 + Math.random() * 15) + "ms";
+
+                renderTable();
+
+                // Ocassionally inject dynamic ticker message
+                if (Math.random() > 0.6) {
+                    pushTickerMessage(`${s.course.split(' ')[0]}: ${s.name} ${newAct.toLowerCase()}`);
+                }
+
+            }, 3500);
+        }
+
+        function toggleSimulation() {
+            isSimulating = !isSimulating;
+            const btnText = document.getElementById('sim-text');
+            const btnIcon = document.getElementById('sim-icon');
+
+            if(isSimulating) {
+                btnText.innerText = "Sim Live Events";
+                btnIcon.setAttribute('data-lucide', 'play');
+                showToast("Simulation Engine Resumed", "info");
+            } else {
+                btnText.innerText = "Simulation Paused";
+                btnIcon.setAttribute('data-lucide', 'pause');
+                showToast("Simulation Engine Paused", "warning");
+            }
+            lucide.createIcons();
+        }
+
+        // MODAL HANDLERS
+        function openStudentModal(studentId) {
+            selectedStudent = students.find(s => s.id === studentId);
+            if(!selectedStudent) return;
+
+            document.getElementById('modal-student-name').innerText = selectedStudent.name;
+            document.getElementById('modal-student-id').innerText = `ID: ${selectedStudent.id} • ${selectedStudent.course}`;
+            document.getElementById('modal-avatar').innerText = getInitials(selectedStudent.name);
+
+            const logList = document.getElementById('modal-log-list');
+            logList.innerHTML = `
+                <div class="p-2.5 bg-slate-950 rounded border border-slate-800 text-xs flex justify-between items-center">
+                    <div>
+                        <div class="text-slate-200 font-semibold">${selectedStudent.activity}</div>
+                        <div class="text-[10px] text-slate-500 font-mono">Event: telemetry.activity.update</div>
+                    </div>
+                    <span class="text-[10px] text-cyan-400 font-mono">${selectedStudent.lastActive}</span>
+                </div>
+                <div class="p-2.5 bg-slate-950 rounded border border-slate-800 text-xs flex justify-between items-center">
+                    <div>
+                        <div class="text-slate-200 font-semibold">Ping Network Latency Check</div>
+                        <div class="text-[10px] text-slate-500 font-mono">Round-trip: ${selectedStudent.latency}ms</div>
+                    </div>
+                    <span class="text-[10px] text-slate-400 font-mono">3m ago</span>
+                </div>
+                <div class="p-2.5 bg-slate-950 rounded border border-slate-800 text-xs flex justify-between items-center">
+                    <div>
+                        <div class="text-slate-200 font-semibold">OAuth Token Renewal</div>
+                        <div class="text-[10px] text-slate-500 font-mono">Status: 200 OK</div>
+                    </div>
+                    <span class="text-[10px] text-slate-400 font-mono">15m ago</span>
+                </div>
+            `;
+
+            document.getElementById('student-modal').classList.remove('hidden');
+        }
+
+        function closeStudentModal() {
+            document.getElementById('student-modal').classList.add('hidden');
+        }
+
+        function openWebhookModal() {
+            document.getElementById('webhook-modal').classList.remove('hidden');
+        }
+
+        function closeWebhookModal() {
+            document.getElementById('webhook-modal').classList.add('hidden');
+        }
+
+        function openMockSimulatorModal() {
+            document.getElementById('mock-modal').classList.remove('hidden');
+        }
+
+        function closeMockSimulatorModal() {
+            document.getElementById('mock-modal').classList.add('hidden');
+        }
+
+        // PRESET PAYLOAD LOADER
+        function loadPresetPayload() {
+            const preset = document.getElementById('preset-select').value;
+            const editor = document.getElementById('payload-editor');
+
+            const payloads = {
+                exam_drop: JSON.stringify({
+                    event: "proctor.connection.dropped",
+                    student_id: "STU-1003",
+                    student_name: "Marcus Vance",
+                    course: "CS202 - Data Structures",
+                    timestamp: new Date().toISOString(),
+                    reason: "TCP Timeout / Unscheduled Disconnect"
+                }, null, 2),
+                quiz_submit: JSON.stringify({
+                    event: "lms.quiz.submitted",
+                    student_id: "STU-1001",
+                    student_name: "Alex Chen",
+                    score: 98,
+                    duration_mins: 22,
+                    timestamp: new Date().toISOString()
+                }, null, 2),
+                proctor_flag: JSON.stringify({
+                    event: "proctor.anomaly.detected",
+                    student_id: "STU-1007",
+                    student_name: "Liam O'Connor",
+                    flag_type: "WINDOW_FOCUS_LOST",
+                    count: 4,
+                    timestamp: new Date().toISOString()
+                }, null, 2),
+                user_login: JSON.stringify({
+                    event: "auth.user.login",
+                    student_id: "STU-1005",
+                    ip: "192.168.1.45",
+                    device: "Chrome / macOS",
+                    timestamp: new Date().toISOString()
+                }, null, 2)
+            };
+
+            editor.value = payloads[preset] || "";
+        }
+
+        // DISPATCH MOCK WEBHOOK EVENT
+        function dispatchMockEvent() {
+            try {
+                const payload = JSON.parse(document.getElementById('payload-editor').value);
+                
+                // Add new alert if it's an anomaly or drop
+                if (payload.event === "proctor.connection.dropped" || payload.event === "proctor.anomaly.detected") {
+                    const newAlert = {
+                        id: Date.now(),
+                        studentId: payload.student_id,
+                        studentName: payload.student_name || "Unknown Student",
+                        type: payload.event === "proctor.connection.dropped" ? "CRITICAL" : "WARNING",
+                        msg: payload.reason || `Anomaly Flagged: ${payload.flag_type}`,
+                        time: "Just now",
+                        resolved: false
+                    };
+                    alerts.unshift(newAlert);
+                    renderAlerts();
+
+                    // Update student status in table
+                    const targetStudent = students.find(s => s.id === payload.student_id);
+                    if (targetStudent) {
+                        targetStudent.status = payload.event === "proctor.connection.dropped" ? "At-Risk" : "Away";
+                        targetStudent.activity = payload.reason || "Proctoring Flag Received";
+                        renderTable();
+                    }
+                }
+
+                pushTickerMessage(`INJECTED: ${payload.event} for ${payload.student_id}`);
+                showToast(`Webhook event [${payload.event}] ingested!`, "success");
+                closeMockSimulatorModal();
+            } catch(e) {
+                showToast("Invalid JSON Payload format", "error");
+            }
+        }
+
+        // ACTIONS IN MODAL
+        function triggerAction(action) {
+            if(!selectedStudent) return;
+            if (action === 'reconnect') {
+                showToast(`Sent TCP Reconnect Ping to ${selectedStudent.name}'s client`, "info");
+            } else if (action === 'notification') {
+                showToast(`Automated engagement notification sent to ${selectedStudent.name}`, "success");
+            } else if (action === 'flag') {
+                selectedStudent.status = selectedStudent.status === 'At-Risk' ? 'Online' : 'At-Risk';
+                renderTable();
+                showToast(`Updated ${selectedStudent.name} status to ${selectedStudent.status}`, "warning");
+                closeStudentModal();
+            }
+        }
+
+        // EXPORT FUNCTIONS
+        function exportCSV() {
+            let csv = "Student ID,Name,Course,Current Activity,Status,Last Active\n";
+            students.forEach(s => {
+                csv += `"${s.id}","${s.name}","${s.course}","${s.activity}","${s.status}","${s.lastActive}"\n`;
+            });
+            downloadFile(csv, "student_telemetry_export.csv", "text/csv");
+            showToast("Exported student telemetry as CSV", "success");
+        }
+
+        function exportJSON() {
+            const dataStr = JSON.stringify(students, null, 2);
+            downloadFile(dataStr, "student_telemetry_export.json", "application/json");
+            showToast("Exported student telemetry as JSON", "success");
+        }
+
+        function downloadFile(content, fileName, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // UTILITY FUNCTIONS
+        function getInitials(name) {
+            return name.split(' ').map(n => n[0]).join('');
+        }
+
+        function copyToClipboard(text) {
+            const tempInput = document.createElement('input');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            showToast("Copied to clipboard!", "info");
+        }
+
+        function showToast(message, type = "info") {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = "bg-slate-900 border-slate-700 text-slate-200";
+            if (type === "success") bgClass = "bg-slate-900 border-emerald-500/50 text-emerald-400";
+            if (type === "warning") bgClass = "bg-slate-900 border-amber-500/50 text-amber-400";
+            if (type === "error") bgClass = "bg-slate-900 border-rose-500/50 text-rose-400";
+
+            toast.className = `px-4 py-3 rounded-lg border shadow-xl text-xs font-semibold flex items-center gap-2 transition-all duration-300 pointer-events-auto transform translate-y-2 ${bgClass}`;
+            toast.innerHTML = `<i data-lucide="info" class="w-4 h-4"></i> <span>${message}</span>`;
+
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', '-translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
